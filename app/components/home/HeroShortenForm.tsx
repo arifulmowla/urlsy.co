@@ -37,6 +37,7 @@ export function HeroShortenForm() {
   const [errorMessage, setErrorMessage] = useState("");
   const [shortUrl, setShortUrl] = useState("");
   const [isPending, setIsPending] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const canSubmit = useMemo(() => inputValue.trim().length > 0 && !isPending, [inputValue, isPending]);
 
@@ -44,6 +45,7 @@ export function HeroShortenForm() {
     event.preventDefault();
     setErrorMessage("");
     setShortUrl("");
+    setCopied(false);
 
     const { normalized, error } = normalizeUrl(inputValue);
     if (error) {
@@ -85,6 +87,29 @@ export function HeroShortenForm() {
     }
   }
 
+  async function handleCopy() {
+    if (!shortUrl) return;
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shortUrl);
+      } else {
+        const textarea = document.createElement("textarea");
+        textarea.value = shortUrl;
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+      }
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setErrorMessage("Unable to copy. Please copy the link manually.");
+    }
+  }
+
   return (
     <div className="mt-6">
       <form className="flex flex-col gap-3 sm:flex-row" onSubmit={handleSubmit} noValidate>
@@ -121,12 +146,22 @@ export function HeroShortenForm() {
         {errorMessage ? (
           <p className="font-medium text-red-700">{errorMessage}</p>
         ) : shortUrl ? (
-          <p className="font-medium text-[var(--success)]">
-            Your short link:{" "}
-            <a className="focus-ring underline underline-offset-2" href={shortUrl}>
+          <div className="flex flex-wrap items-center gap-2 font-medium text-[var(--success)]">
+            <span>Your short link:</span>
+            <a
+              className="focus-ring break-all underline underline-offset-2"
+              href={shortUrl}
+            >
               {shortUrl}
             </a>
-          </p>
+            <button
+              type="button"
+              onClick={handleCopy}
+              className="focus-ring shrink-0 rounded-full border border-[var(--stroke)] bg-white px-3 py-1 text-xs font-semibold text-[var(--text-primary)] hover:bg-[var(--accent)]/20"
+            >
+              {copied ? "Copied" : "Copy"}
+            </button>
+          </div>
         ) : (
           <p className="text-[var(--text-muted)]">No signup needed to try it.</p>
         )}

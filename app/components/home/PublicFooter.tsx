@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 const socialLinks = [
-  { label: "X", href: "https://x.com/urlsy" },
+  { label: "X", href: "https://x.com/urlsycc" },
   { label: "LinkedIn", href: "https://www.linkedin.com/company/urlsy" },
 ];
 
