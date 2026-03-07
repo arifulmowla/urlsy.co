@@ -21,6 +21,21 @@ const bodySchema = z.object({
 
 const appleJwks = createRemoteJWKSet(new URL("https://appleid.apple.com/auth/keys"));
 
+function decodeJwtPayloadForDebug(idToken: string) {
+  try {
+    const payloadPart = idToken.split(".")[1];
+    if (!payloadPart) return null;
+    const payloadJson = Buffer.from(payloadPart, "base64url").toString("utf8");
+    return JSON.parse(payloadJson) as {
+      aud?: string | string[];
+      azp?: string;
+      iss?: string;
+    };
+  } catch {
+    return null;
+  }
+}
+
 function getAppleAudiences() {
   const audiences = [
     process.env.APPLE_CLIENT_ID,
@@ -71,6 +86,22 @@ export async function POST(request: NextRequest) {
       name = payload?.name ?? undefined;
       image = payload?.picture ?? undefined;
     } catch {
+      if (process.env.NODE_ENV !== "production") {
+        const decoded = decodeJwtPayloadForDebug(parsed.data.idToken);
+        return NextResponse.json(
+          {
+            error: "invalid_token",
+            reason: "audience_mismatch",
+            expectedAudiences: audiences,
+            token: {
+              aud: decoded?.aud,
+              azp: decoded?.azp,
+              iss: decoded?.iss,
+            },
+          },
+          { status: 401, headers: CORS_HEADERS },
+        );
+      }
       return NextResponse.json({ error: "invalid_token" }, { status: 401, headers: CORS_HEADERS });
     }
   } else {
