@@ -119,7 +119,7 @@ export function PublicFooter() {
           URLSY.CC
         </div>
         <p className="text-right text-xs font-bold uppercase tracking-[0.25em] text-white/30">
-          © 2026 URLSY.CC STRUCTURAL PROTOCOL
+          © 2026 URLSY.CC
           <br />
           ALL RIGHTS RESERVED
         </p>
