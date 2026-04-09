@@ -1,3 +1,6 @@
+"use client";
+
+import posthog from "posthog-js";
 import { Kicker } from "@/app/components/marketing/BrutalPrimitives";
 import Link from "next/link";
 
@@ -111,6 +114,14 @@ export function PricingSection() {
 
             <Link
               href={plan.href}
+              onClick={() =>
+                posthog.capture("pricing_cta_clicked", {
+                  plan: plan.name,
+                  tier: plan.tier,
+                  price: plan.price,
+                  cta: plan.cta,
+                })
+              }
               className={`focus-ring mt-8 inline-flex h-14 w-full items-center justify-center border-4 border-[var(--stroke)] px-4 text-sm font-black uppercase tracking-[0.12em] ${
                 plan.highlighted
                   ? "bg-black text-white"

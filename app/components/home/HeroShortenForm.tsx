@@ -133,6 +133,7 @@ export function HeroShortenForm() {
   async function handleCopy() {
     const didCopy = await copyShortUrl();
     if (didCopy) {
+      posthog.capture("hero_short_url_copied", { short_url: shortUrl, source: "homepage_hero" });
       showCopiedFeedback(false);
     }
   }

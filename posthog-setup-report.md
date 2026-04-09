@@ -1,43 +1,46 @@
 <wizard-report>
 # PostHog post-wizard report
 
-The wizard has completed a deep integration of PostHog analytics into urlsy.cc, a Next.js 16.1.6 App Router URL shortener.
+The wizard has completed a deep integration of PostHog analytics into urlsy.cc. The project already had a strong foundation (posthog-js, posthog-node, PostHogProvider, user identification, and server-side event tracking). The following improvements and additions were made in this session:
 
-**What was set up:**
+1. **Environment variables**: Set `NEXT_PUBLIC_POSTHOG_KEY` (was missing) and confirmed `NEXT_PUBLIC_POSTHOG_HOST=https://eu.i.posthog.com` in `.env.local`.
 
-- `instrumentation-client.ts` — PostHog client-side initialization using the Next.js 15.3+ instrumentation API, with EU cloud host, session replay, and automatic exception capture enabled.
-- `lib/posthog-server.ts` — Singleton PostHog Node.js client for server-side event tracking in API routes and server actions.
-- `next.config.ts` — Added `/ingest` reverse proxy rewrites routing PostHog traffic through the app (EU endpoints), plus `skipTrailingSlashRedirect: true`.
-- `.env.local` — `NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN` and `NEXT_PUBLIC_POSTHOG_HOST` set to project values.
-- **12 events** instrumented across 6 files (5 client-side, 2 server-side).
-- User identification on sign-in: `posthog.identify()` called server-side in `app/auth/claim/route.ts` with user ID, email, and name from the Google OAuth session.
+2. **Migrated to `instrumentation-client.ts`**: For Next.js 15.3+, PostHog initialization now lives in `instrumentation-client.ts` using the `/ingest` reverse proxy (already configured in `next.config.ts`), with `capture_exceptions: true` for automatic error tracking and `defaults: '2026-01-30'` opt-in.
+
+3. **Slimmed down `PostHogProvider.tsx`**: Removed the `posthog.init()` call (now in `instrumentation-client.ts`). The component now only handles manual `$pageview` capture on App Router navigation changes.
+
+4. **Added `pricing_cta_clicked` event** in `PricingSection.tsx`: Converted to a client component to fire this event when a visitor clicks a pricing plan CTA, with `plan`, `tier`, `price`, and `cta` properties.
+
+5. **Added `hero_short_url_copied` event** in `HeroShortenForm.tsx`: Fires when a user copies their shortened URL result from the homepage hero form.
+
+## Event table
 
 | Event | Description | File |
 |---|---|---|
-| `link_shortened` | User shortens a URL via the homepage hero form | `app/components/home/HeroShortenForm.tsx` |
-| `link_created` | Authenticated user creates a link in the dashboard | `app/components/dashboard/CreateLinkCard.tsx` |
-| `link_copied` | User copies a short link from the dashboard | `app/components/dashboard/DashboardClient.tsx` |
-| `link_deleted` | User deletes a short link from the dashboard | `app/components/dashboard/DashboardClient.tsx` |
-| `link_analytics_viewed` | User opens the analytics panel for a specific link | `app/components/dashboard/LinksTableCard.tsx` |
-| `qr_code_downloaded` | User downloads a QR code PNG | `app/components/dashboard/LinksTableCard.tsx` |
-| `upgrade_to_pro_clicked` | User clicks the Upgrade to Pro button | `app/components/dashboard/billing/BillingPlanCard.tsx` |
-| `billing_portal_opened` | User successfully opens the Stripe billing portal | `app/components/dashboard/billing/BillingPlanCard.tsx` |
-| `yearly_upgrade_scheduled` | User schedules a monthly→yearly upgrade | `app/components/dashboard/billing/BillingPlanCard.tsx` |
-| `user_signed_in` | Server-side: user completes Google OAuth sign-in | `app/auth/claim/route.ts` |
-| `subscription_completed` | Server-side: Stripe checkout.session.completed webhook | `app/api/stripe/webhook/route.ts` |
-| `subscription_cancelled` | Server-side: Stripe customer.subscription.deleted webhook | `app/api/stripe/webhook/route.ts` |
+| `$pageview` | Fired on every client-side page navigation | `app/components/analytics/PostHogProvider.tsx` |
+| `user_signed_in` | Fired server-side after Google OAuth sign-in completes; includes provider and guest link claim status | `app/auth/claim/route.ts` |
+| `link_shortened` | Fired when a URL is shortened via the homepage hero form | `app/components/home/HeroShortenForm.tsx` |
+| `hero_short_url_copied` | **NEW** — Fired when a user copies the shortened URL result from the homepage hero | `app/components/home/HeroShortenForm.tsx` |
+| `link_created` | Fired when a logged-in user creates a short link from the dashboard; includes alias/expiry usage | `app/components/dashboard/CreateLinkCard.tsx` |
+| `link_deleted` | Fired when a user deletes a short link from the dashboard | `app/components/dashboard/DashboardClient.tsx` |
+| `link_copied` | Fired when a user copies a short link from the dashboard links table | `app/components/dashboard/DashboardClient.tsx` |
+| `pricing_cta_clicked` | **NEW** — Fired when a visitor clicks a pricing plan CTA on the homepage; includes plan, tier, price, cta | `app/components/home/PricingSection.tsx` |
+| `upgrade_to_pro_clicked` | Fired when a user clicks Upgrade to Pro / Change Plan on the billing page | `app/components/dashboard/billing/BillingPlanCard.tsx` |
+| `billing_portal_opened` | Fired when a user opens the Stripe billing portal | `app/components/dashboard/billing/BillingPlanCard.tsx` |
+| `yearly_upgrade_scheduled` | Fired when a monthly Pro user schedules an upgrade to yearly billing | `app/components/dashboard/billing/BillingPlanCard.tsx` |
+| `subscription_completed` | **Server-side** — Fired when a Stripe `checkout.session.completed` webhook is processed | `app/api/stripe/webhook/route.ts` |
+| `subscription_cancelled` | **Server-side** — Fired when a Stripe `customer.subscription.deleted` webhook is processed | `app/api/stripe/webhook/route.ts` |
 
 ## Next steps
 
-We've built a dashboard and five insights to monitor key business metrics:
+We've built a pinned dashboard and 5 insights to monitor user behavior:
 
-- **Dashboard — Analytics basics**: https://eu.posthog.com/project/156374/dashboard/613081
-
-- **Link shortening activity** (homepage vs dashboard volume): https://eu.posthog.com/project/156374/insights/LexfjAux
-- **Pro upgrade conversion funnel** (`upgrade_to_pro_clicked` → `subscription_completed`): https://eu.posthog.com/project/156374/insights/akJooHJs
-- **New user sign-ins** (daily Google OAuth sign-ins): https://eu.posthog.com/project/156374/insights/2YiiAYEc
-- **Dashboard engagement actions** (copies, analytics views, QR downloads): https://eu.posthog.com/project/156374/insights/wS5RbvoY
-- **Subscription health** (new subscriptions vs cancellations, weekly): https://eu.posthog.com/project/156374/insights/lnWrlj6i
+- **Dashboard**: [Analytics basics](https://eu.posthog.com/project/156374/dashboard/613134)
+- [Daily User Sign-ins](https://eu.posthog.com/project/156374/insights/G9jcii2T) — Daily unique users completing Google sign-in
+- [Link Activity: Created, Deleted & Copied](https://eu.posthog.com/project/156374/insights/kujiuXE0) — Core product engagement trend
+- [Homepage to Dashboard Conversion Funnel](https://eu.posthog.com/project/156374/insights/iRFalBKC) — Anonymous shorten → sign-in → create link activation funnel
+- [Upgrade Conversion Funnel](https://eu.posthog.com/project/156374/insights/ccouTHAR) — Upgrade click → subscription completed (checkout drop-off)
+- [Pricing CTA Clicks by Plan](https://eu.posthog.com/project/156374/insights/7TuFlBPA) — Homepage pricing intent by plan tier
 
 ### Agent skill
 
